@@ -308,35 +308,62 @@ class Schenker extends CarrierModule
         $orderWeight = $cart->getTotalWeight() * 1000;
         $calcWeight = 0;
         $shipping_cost = 0;
+        $visors_shipping_cost = 0;
+        $other_products_shipping_cost = 0;
 
         foreach ($productsForShipp as $productForShipp) 
         {
+        	$ref = $productForShipp['reference'];
         	$qty = $productForShipp['cart_quantity'];
             $weight = round($productForShipp['weight']);
             $width = round($productForShipp['width']);
             $height = round($productForShipp['height']);
             $depth = round($productForShipp['depth']);
+            
+            	
+            	switch ($ref) {
+            		case preg_match('/APBG[^C]/', $ref) == 1:
+            			$hvisors = true;
+            			$visors_shipping_cost = 350;
+            			break;
 
-            $ch = curl_init('https://www.myschenker.no/Fraktberegning/Webgrensesnitt/Fraktberegning.aspx');
-			curl_setopt($ch, CURLOPT_POST, 1);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, 'send_kunde_nr='.$send_kunde_nr.'&bruker='.$bruker.'&passord='.$passord.'&send_post_nr='.$from_postnr.'&mott_post_nr='.$to_postnr.'&virk_vekt_kg='.$weight.'&lengde_cm='.$depth.'&bredde_cm='.$width.'&hoeyde_cm='.$height);
-			curl_setopt($ch, CURLOPT_COOKIEJAR, "my_cookies.txt");  
-			curl_setopt($ch, CURLOPT_COOKIEFILE, "my_cookies.txt");  
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
-			$result = curl_exec($ch); 
-			curl_close($ch);
-			$xml=simplexml_load_string($result) or die("Error: Cannot create object");
+            		case preg_match('/^AP0/', $ref) == 1:
+            			
+            			if ($hvisors) {
+            				$visors_shipping_cost = 350;
+            			}
+            			else {
+            				$visors_shipping_cost = 250;
+            			}
+          
+            			break;
+            		
+            		default:
+            			$ch = curl_init('https://www.myschenker.no/Fraktberegning/Webgrensesnitt/Fraktberegning.aspx');
+						curl_setopt($ch, CURLOPT_POST, 1);
+						curl_setopt($ch, CURLOPT_POSTFIELDS, 'send_kunde_nr='.$send_kunde_nr.'&bruker='.$bruker.'&passord='.$passord.'&send_post_nr='.$from_postnr.'&mott_post_nr='.$to_postnr.'&virk_vekt_kg='.$weight.'&lengde_cm='.$depth.'&bredde_cm='.$width.'&hoeyde_cm='.$height);
+						curl_setopt($ch, CURLOPT_COOKIEJAR, "my_cookies.txt");  
+						curl_setopt($ch, CURLOPT_COOKIEFILE, "my_cookies.txt");  
+						curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+						curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+						$result = curl_exec($ch); 
+						curl_close($ch);
+						$xml=simplexml_load_string($result) or die("Error: Cannot create object");
 			
-			$item_shipping_cost = $xml->pris->kr_avtalefrakt;
-
-			if (!$item_shipping_cost) {
+						$item_shipping_cost = $xml->pris->kr_avtalefrakt;
+            			break;
+            	}
+            	
+			if (!$item_shipping_cost || $visors_shipping_cost == 0) {
                 break;
             }
             
+            
             $calcWeight += $weight * $qty; 
-            $shipping_cost += $item_shipping_cost * $qty;
+            $other_products_shipping_cost += $item_shipping_cost * $qty;
         }
+		
+		$shipping_cost = $other_products_shipping_cost + $visors_shipping_cost;
 		
 		if($shipping_cost) 
 		{
