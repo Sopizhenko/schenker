@@ -310,6 +310,8 @@ class Schenker extends CarrierModule
         $shipping_cost = 0;
         $visors_shipping_cost = 0;
         $other_products_shipping_cost = 0;
+        $item_shipping_cost = 0;
+
 
         foreach ($productsForShipp as $productForShipp) 
         {
@@ -354,11 +356,10 @@ class Schenker extends CarrierModule
             			break;
             	}
             	
-			if (!$item_shipping_cost || $visors_shipping_cost == 0) {
-                break;
-            }
+			
             
-            
+            $arrayName = array('item_cost' => $item_shipping_cost,);
+            print_r($arrayName);
             $calcWeight += $weight * $qty; 
             $other_products_shipping_cost += $item_shipping_cost * $qty;
         }
